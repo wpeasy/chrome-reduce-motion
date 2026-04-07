@@ -11,11 +11,12 @@ Settings persist across page reloads and browser restarts, per origin.
 
 ## Install (development)
 
-1. Download and unzip the extension folder
-2. Go to `chrome://extensions`
-3. Enable **Developer mode** (top right)
-4. Click **Load unpacked** → select the unzipped folder
-5. The clock icon appears in your toolbar
+1. Go to the latest release
+2. Download and extract reduced-motion-toggle.zip
+3. Go to `chrome://extensions`
+4. Enable **Developer mode** (top right)
+5. Click **Load unpacked** → select the unzipped folder
+6. The clock icon appears in your toolbar
 
 ## Usage
 

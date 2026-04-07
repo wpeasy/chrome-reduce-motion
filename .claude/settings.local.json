@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(powershell -ExecutionPolicy Bypass -File build-zip.ps1)"
+      "Bash(powershell -ExecutionPolicy Bypass -File build-zip.ps1)",
+      "Bash(gh release create v1.0.0 --title v1.0.0 --notes ':*)"
     ]
   }
 }
