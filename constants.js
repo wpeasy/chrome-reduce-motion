@@ -14,4 +14,4 @@ const CSS = `
 const MODE_KEY = '_mode';
 const MODE_DEBUGGER = 'debugger';
 const MODE_CSS = 'css';
-const DEFAULT_MODE = 'css';
+const DEFAULT_MODE = 'debugger';

@@ -78,7 +78,7 @@ The service worker manages the debugger lifecycle:
 - Keys prefixed with `_` are meta keys. Origin keys always start with `http`.
 - Disabling an origin calls `chrome.storage.local.remove(origin)` — not `false`.
 - When reading origins, filter: `key does not start with '_'` AND `val === true`.
-- Default mode (when `_mode` is absent): `"css"` (non-breaking for upgrades).
+- Default mode (when `_mode` is absent): `"debugger"`.
 
 ---
 
