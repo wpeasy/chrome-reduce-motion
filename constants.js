@@ -10,3 +10,8 @@ const CSS = `
   scroll-behavior: auto !important;
 }
 `;
+
+const MODE_KEY = '_mode';
+const MODE_DEBUGGER = 'debugger';
+const MODE_CSS = 'css';
+const DEFAULT_MODE = 'css';

@@ -2,8 +2,14 @@
 
 let currentTab = null;
 let currentOrigin = null;
+let currentMode = DEFAULT_MODE;
 
 const EMPTY_STATE = '<div class="empty-state">No other origins enabled</div>';
+
+const MODE_HINTS = {
+  [MODE_DEBUGGER]: 'Sets prefers-reduced-motion via DevTools protocol',
+  [MODE_CSS]: 'Overrides animations with injected stylesheet',
+};
 
 /* ── Helpers ── */
 
@@ -11,16 +17,13 @@ function displayOrigin(origin) {
   return origin.replace(/^https?:\/\//, '');
 }
 
-function setOriginEnabled(origin, enabled) {
-  if (enabled) {
-    chrome.storage.local.set({ [origin]: true });
-  } else {
-    chrome.storage.local.remove(origin);
-  }
+function isOriginKey(key) {
+  return !key.startsWith('_');
 }
 
-/* ── Inject / remove CSS in all tabs matching an origin ── */
-async function applyToOrigin(origin, enabled) {
+/* ── CSS-mode injection (direct from popup) ── */
+
+async function applyToOriginCss(origin, enabled) {
   const tabs = await chrome.tabs.query({});
   for (const tab of tabs) {
     try {
@@ -45,8 +48,7 @@ async function applyToOrigin(origin, enabled) {
   }
 }
 
-/* ── Remove CSS from every open tab regardless of origin ── */
-async function clearAllTabs() {
+async function clearAllTabsCss() {
   const tabs = await chrome.tabs.query({});
   for (const t of tabs) {
     try {
@@ -59,6 +61,34 @@ async function clearAllTabs() {
         args: [STYLE_ID],
       });
     } catch (_) { /* skip restricted tabs */ }
+  }
+}
+
+/* ── Mode-aware actions ── */
+
+async function toggleOrigin(origin, enabled) {
+  if (currentMode === MODE_DEBUGGER) {
+    await chrome.runtime.sendMessage({
+      action: 'enableOrigin', origin, enabled,
+    });
+  } else {
+    if (enabled) {
+      chrome.storage.local.set({ [origin]: true });
+    } else {
+      chrome.storage.local.remove(origin);
+    }
+    await applyToOriginCss(origin, enabled);
+  }
+}
+
+async function clearAll() {
+  if (currentMode === MODE_DEBUGGER) {
+    await chrome.runtime.sendMessage({ action: 'clearAll' });
+  } else {
+    const all = await chrome.storage.local.get(null);
+    const keys = Object.keys(all).filter(isOriginKey);
+    await chrome.storage.local.remove(keys);
+    await clearAllTabsCss();
   }
 }
 
@@ -96,7 +126,6 @@ function makeRow(origin, enabled, isCurrent) {
   input.addEventListener('change', async () => {
     const on = input.checked;
     dot.classList.toggle('active', on);
-    setOriginEnabled(origin, on);
     /* Remove row from "others" list after a beat, then check if list is empty */
     if (!on && !isCurrent) {
       setTimeout(() => {
@@ -107,10 +136,20 @@ function makeRow(origin, enabled, isCurrent) {
         }
       }, 200);
     }
-    await applyToOrigin(origin, on);
+    await toggleOrigin(origin, on);
   });
 
   return row;
+}
+
+/* ── Mode UI ── */
+
+function setModeUi(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+  document.getElementById('mode-hint').textContent = MODE_HINTS[mode] || '';
 }
 
 /* ── Init ── */
@@ -129,47 +168,58 @@ async function init() {
   const currentDot = document.getElementById('current-dot');
   const currentToggle = document.getElementById('current-toggle');
 
+  /* Read storage and set up UI */
+  const all = await chrome.storage.local.get(null);
+  currentMode = all[MODE_KEY] || DEFAULT_MODE;
+  setModeUi(currentMode);
+
   if (!currentOrigin || currentOrigin === 'null') {
     currentOriginEl.textContent = 'Not available on this page';
     currentToggle.disabled = true;
   } else {
     currentOriginEl.textContent = displayOrigin(currentOrigin);
 
-    chrome.storage.local.get(null, (all) => {
-      const enabled = all[currentOrigin] === true;
-      currentToggle.checked = enabled;
-      currentDot.classList.toggle('active', enabled);
+    const enabled = all[currentOrigin] === true;
+    currentToggle.checked = enabled;
+    currentDot.classList.toggle('active', enabled);
 
-      /* Other origins list */
-      const othersList = document.getElementById('others-list');
-      const others = Object.entries(all).filter(
-        ([origin, val]) => origin !== currentOrigin && val === true
-      );
+    /* Other origins list */
+    const othersList = document.getElementById('others-list');
+    const others = Object.entries(all).filter(
+      ([key, val]) => isOriginKey(key) && key !== currentOrigin && val === true
+    );
 
-      if (others.length === 0) {
-        othersList.innerHTML = EMPTY_STATE;
-      } else {
-        others.forEach(([origin]) => {
-          othersList.appendChild(makeRow(origin, true, false));
-        });
-      }
-    });
+    if (others.length === 0) {
+      othersList.innerHTML = EMPTY_STATE;
+    } else {
+      others.forEach(([origin]) => {
+        othersList.appendChild(makeRow(origin, true, false));
+      });
+    }
 
     currentToggle.addEventListener('change', async () => {
       const on = currentToggle.checked;
       currentDot.classList.toggle('active', on);
-      setOriginEnabled(currentOrigin, on);
-      await applyToOrigin(currentOrigin, on);
+      await toggleOrigin(currentOrigin, on);
     });
   }
 
+  /* Mode toggle */
+  document.querySelectorAll('.mode-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const newMode = btn.dataset.mode;
+      if (newMode === currentMode) return;
+      setModeUi(newMode);
+      await chrome.runtime.sendMessage({ action: 'modeChange', mode: newMode });
+    });
+  });
+
   /* Clear all */
   document.getElementById('clear-all').addEventListener('click', async () => {
-    await chrome.storage.local.clear();
+    await clearAll();
     currentToggle.checked = false;
     currentDot.classList.remove('active');
     document.getElementById('others-list').innerHTML = EMPTY_STATE;
-    await clearAllTabs();
   });
 }
 

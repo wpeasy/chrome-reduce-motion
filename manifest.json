@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Reduced Motion Toggle",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Force prefers-reduced-motion on any page with a single toggle.",
   "action": {
     "default_popup": "popup.html",
@@ -21,8 +21,13 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "debugger",
+    "tabs"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

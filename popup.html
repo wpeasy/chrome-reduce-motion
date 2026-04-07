@@ -164,6 +164,49 @@
       transition: border-color 0.15s, color 0.15s;
     }
     #clear-all:hover { border-color: var(--danger); color: var(--danger); }
+
+    .mode-bar {
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .mode-label {
+      font-size: 8.5px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .mode-toggle {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .mode-btn {
+      background: var(--toggle-off);
+      border: none;
+      color: var(--text-dim);
+      font-family: inherit;
+      font-size: 9px;
+      padding: 3px 8px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .mode-btn + .mode-btn { border-left: 1px solid var(--border); }
+    .mode-btn.active {
+      background: #1a3019;
+      color: var(--accent);
+    }
+    .mode-hint {
+      padding: 4px 14px 6px;
+      font-size: 8.5px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+    }
   </style>
 </head>
 <body>
@@ -176,6 +219,15 @@
     </svg>
     <span class="header-title">Reduced Motion</span>
   </div>
+
+  <div class="mode-bar">
+    <span class="mode-label">Mode</span>
+    <div class="mode-toggle">
+      <button class="mode-btn" data-mode="debugger">Emulate</button>
+      <button class="mode-btn active" data-mode="css">CSS Override</button>
+    </div>
+  </div>
+  <div class="mode-hint" id="mode-hint">Overrides animations with injected stylesheet</div>
 
   <div class="section-label">Current tab</div>
   <div class="origin-row current" id="current-row">
