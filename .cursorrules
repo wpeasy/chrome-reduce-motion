@@ -1,0 +1,50 @@
+# Cursor rules — Reduced Motion Toggle Chrome Extension
+
+## Project type
+Manifest V3 Chrome extension. Vanilla JS. No build step, no TypeScript, no bundler.
+Do not introduce npm, webpack, esbuild, or any build tooling.
+
+## File responsibilities
+- `constants.js`  Shared constants only (STYLE_ID, CSS string). No logic.
+- `content.js`    Page-load persistence only. Reads storage, injects style. No UI.
+- `popup.js`      All popup logic. Drives UI, calls chrome.scripting, manages storage.
+- `popup.html`    Markup + all CSS (inline <style>). No external stylesheets.
+- `manifest.json` Permissions: activeTab, scripting, storage. No background SW.
+
+## Chrome API patterns
+- Use `chrome.scripting.executeScript` for immediate injection into tabs.
+  Do NOT use `chrome.tabs.sendMessage` to reach the content script — it fails
+  silently if the content script wasn't injected into that tab instance.
+- Use `chrome.storage.local` (not session or sync) for origin state.
+- Storage stores only enabled origins as `{ "https://origin.com": true }`.
+  Absent key = disabled. Never store `false`.
+
+## CSS injection rules
+- ALWAYS use `0.01ms` for durations, never `none` or `0s`.
+  Reason: `none` suppresses transitionend/animationend JS events.
+- The injected `<style>` must have `id="reduced-motion-toggle-injected"`.
+  This ID is how popup.js and content.js detect existing injection.
+- If STYLE_ID or the CSS string need changing, update constants.js only.
+
+## Code style
+- Block comments `/* */` only. Do not use `//` line comments.
+- Async/await throughout — no raw Promise chains.
+- Catch errors from chrome.scripting calls silently (chrome:// pages throw).
+- No TypeScript. JSDoc annotations are acceptable for complex functions.
+
+## UI rules
+- Popup width is fixed at 280px. Do not change this.
+- Add new UI sections between the existing "Current tab" and "Other origins"
+  sections, or below "Other origins" and above the footer.
+- Follow the `makeRow()` pattern for any new list rows.
+- Use existing CSS custom properties (--accent, --border, etc.) — do not
+  introduce new colour values inline.
+- IBM Plex Mono is the only font. Do not add other fonts.
+
+## What NOT to do
+- Do not add a background service worker unless a specific feature requires it,
+  and explain why in a comment if you do.
+- Do not use `chrome.tabs.executeScript` (MV2 API — removed in MV3).
+- Do not store origin state as `false` — remove the key instead.
+- Do not use `animation-duration: none` or `transition-duration: 0s`.
+- Do not split CSS out of popup.html into a separate file.
